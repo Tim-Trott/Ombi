@@ -29,6 +29,7 @@ using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Ombi.Core.Settings;
 using Ombi.Helpers;
 using Ombi.Settings.Settings.Models;
@@ -43,10 +44,10 @@ namespace Ombi.Api
     /// </summary>
     public class OmbiHttpClient : IOmbiHttpClient
     {
-        public OmbiHttpClient(ICacheService cache, ISettingsService<OmbiSettings> s)
+        public OmbiHttpClient(ICacheService cache, IServiceProvider provider)
         {
             _cache = cache;
-            _settings = s;
+            _provider = provider;
             _runtimeVersion = AssemblyHelper.GetRuntimeVersion();
         }
 
@@ -54,7 +55,8 @@ namespace Ombi.Api
         private static HttpMessageHandler _handler;
 
         private readonly ICacheService _cache;
-        private readonly ISettingsService<OmbiSettings> _settings;
+        private readonly IServiceProvider _provider;
+        private ISettingsService<OmbiSettings> _settings;
         private readonly string _runtimeVersion;
 
 
@@ -92,7 +94,11 @@ namespace Ombi.Api
 
         private async Task<HttpMessageHandler> GetHandler()
         {
-            var settings = await _cache.GetOrAdd(CacheKeys.OmbiSettings, async () => await _settings.GetSettingsAsync(), DateTime.Now.AddHours(1));
+            var settings = await _cache.GetOrAdd(CacheKeys.OmbiSettings, async () =>
+            {
+                _settings = _provider.GetRequiredService<ISettingsService<OmbiSettings>>();
+                return await _settings.GetSettingsAsync();
+            }, DateTime.Now.AddHours(1));
             if (settings.IgnoreCertificateErrors)
             {
                 return new HttpClientHandler

@@ -1,19 +1,19 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
 
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="3.0.0" />
     <PackageReference Include="Moq" Version="4.10.0" />
     <PackageReference Include="Nunit" Version="3.11.0" />
     <PackageReference Include="Hangfire" Version="1.7.1" />
     <PackageReference Include="NUnit.ConsoleRunner" Version="3.9.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.13.0" />
-    <packagereference Include="Microsoft.NET.Test.Sdk" Version="16.0.1"></packagereference>
+    <packagereference Include="Microsoft.NET.Test.Sdk" Version="16.3.0"></packagereference>
   </ItemGroup>
 
   <ItemGroup>

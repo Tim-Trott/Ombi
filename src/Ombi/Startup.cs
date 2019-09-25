@@ -9,14 +9,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SpaServices;
-using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Ombi.Core.Authentication;
 using Ombi.Core.Settings;
 using Ombi.DependencyInjection;
@@ -31,6 +28,8 @@ using Ombi.Store.Repository;
 using Serilog;
 using System;
 using System.IO;
+using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
 using ILogger = Serilog.ILogger;
 
 namespace Ombi
@@ -39,7 +38,7 @@ namespace Ombi
     {
         public static StoragePathSingleton StoragePath => StoragePathSingleton.Instance;
 
-        public Startup(IHostingEnvironment env)
+        public Startup(IWebHostEnvironment env)
         {
             Console.WriteLine(env.ContentRootPath);
             var builder = new ConfigurationBuilder()
@@ -60,7 +59,7 @@ namespace Ombi
         public IConfigurationRoot Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
-        public IServiceProvider ConfigureServices(IServiceCollection services)
+        public void ConfigureServices(IServiceCollection services)
         {
             services.AddIdentity<OmbiUser, IdentityRole>()
                 .AddEntityFrameworkStores<OmbiContext>()
@@ -84,8 +83,10 @@ namespace Ombi
             services.AddJwtAuthentication(Configuration);
 
             services.AddMvc()
-                .AddJsonOptions(x =>
-                    x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
+                .AddNewtonsoftJson(options =>
+                    {
+                        options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+                    });
 
             services.AddOmbiMappingProfile();
             services.AddAutoMapper(expression => { expression.AddCollectionMappers(); });
@@ -105,7 +106,9 @@ namespace Ombi
             services.AddHangfire(x =>
             {
                 x.UseSQLiteStorage(sqliteStorage);
+#pragma warning disable ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
                 x.UseActivator(new IoCJobActivator(services.BuildServiceProvider()));
+#pragma warning restore ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
             });
 
             services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
@@ -116,19 +119,18 @@ namespace Ombi
                     .AllowCredentials();
             }));
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Latest);
             services.AddSignalR();
+
+            services.AddControllersWithViews();
             services.AddSpaStaticFiles(configuration =>
             {
                 configuration.RootPath = "ClientApp/dist";
             });
-
-            // Build the intermediate service provider
-            return services.BuildServiceProvider();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory,
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory,
             IMemoryCache cache, IServiceProvider serviceProvider)
         {
             app.UseForwardedHeaders(new ForwardedHeadersOptions
@@ -142,9 +144,10 @@ namespace Ombi
             loggerFactory.AddSerilog();
 
             app.UseHealthChecks("/health");
-
-            app.UseSpaStaticFiles();
-
+            if (!env.IsDevelopment())
+            {
+                app.UseSpaStaticFiles();
+            }
 
             var ombiService =
                 app.ApplicationServices.GetService<ISettingsService<OmbiSettings>>();
@@ -211,12 +214,12 @@ namespace Ombi
                 ContentTypeProvider = provider,
             });
 
-            app.UseAuthentication();
+          
 
             app.UseMiddleware<ErrorHandlingMiddleware>();
             app.UseMiddleware<ApiKeyMiddlewear>();
 
-            app.UseCors("MyPolicy");
+          
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
@@ -230,19 +233,21 @@ namespace Ombi
                 }
             });
 
-            app.UseSignalR(routes => { routes.MapHub<NotificationHub>("/hubs/notification"); });
 
-            app.UseMvcWithDefaultRoute();
-
+            app.UseRouting();
+            
+            app.UseCors("MyPolicy");
+            app.UseAuthentication();
             app.UseSpa(spa =>
             {
+                spa.Options.SourcePath = "ClientApp";
                 if (env.IsDevelopment())
                 {
-                    spa.Options.SourcePath = "ClientApp";
                     spa.UseProxyToSpaDevelopmentServer("http://localhost:3578");
                 }
             });
-            
+
+            app.UseEndpoints(options => { options.MapHub<NotificationHub>("/hubs/notification"); });
         }
 
         private static bool IsSpaRoute(HttpContext context)

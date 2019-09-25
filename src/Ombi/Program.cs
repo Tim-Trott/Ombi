@@ -9,6 +9,7 @@ using CommandLine;
 using CommandLine.Text;
 using Microsoft.AspNetCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Ombi.Helpers;
 
 namespace Ombi
@@ -115,7 +116,7 @@ namespace Ombi
 
             Console.WriteLine($"We are running on {urlValue}");
 
-            CreateWebHostBuilder(args).Build().Run();
+            CreateHostBuilder(args).Build().Run();
         }
 
         private static void DeleteSchedules()
@@ -282,12 +283,20 @@ namespace Ombi
                 throw;
             }
         }
-
-        public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
-                .UseStartup<Startup>()
-                .UseUrls(UrlArgs)
-                .PreferHostingUrls(true);
+        
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.ConfigureKestrel(serverOptions =>
+                        {
+                            serverOptions.AddServerHeader = false;
+                            // Set properties and call methods on options
+                        })
+                        .UseUrls(UrlArgs)
+                        .PreferHostingUrls(true)
+                        .UseStartup<Startup>();
+                });
 
         private static string HelpOutput(ParserResult<Options> args)
         {

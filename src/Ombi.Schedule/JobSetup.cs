@@ -21,7 +21,7 @@ namespace Ombi.Schedule
             IOmbiAutomaticUpdater updater, IEmbyContentSync embySync, IPlexUserImporter userImporter,
             IEmbyUserImporter embyUserImporter, ISonarrSync cache, ICouchPotatoSync cpCache,
             ISettingsService<JobSettings> jobsettings, ISickRageSync srSync, IRefreshMetadata refresh,
-            INewsletterJob newsletter, IPlexRecentlyAddedSync recentlyAddedPlex, ILidarrArtistSync artist,
+            INewsletterJob newsletter, ILidarrArtistSync artist,
             IIssuesPurge purge, IResendFailedRequests resender, IMediaDatabaseRefresh dbRefresh)
         {
             _plexContentSync = plexContentSync;
@@ -36,7 +36,7 @@ namespace Ombi.Schedule
             _srSync = srSync;
             _refreshMetadata = refresh;
             _newsletter = newsletter;
-            _plexRecentlyAddedSync = recentlyAddedPlex;
+            //_plexRecentlyAddedSync = recentlyAddedPlex;
             _lidarrArtistSync = artist;
             _issuesPurge = purge;
             _resender = resender;
@@ -44,7 +44,7 @@ namespace Ombi.Schedule
         }
 
         private readonly IPlexContentSync _plexContentSync;
-        private readonly IPlexRecentlyAddedSync _plexRecentlyAddedSync;
+        //private readonly IPlexRecentlyAddedSync _plexRecentlyAddedSync;
         private readonly IRadarrSync _radarrSync;
         private readonly IOmbiAutomaticUpdater _updater;
         private readonly IPlexUserImporter _plexUserImporter;
